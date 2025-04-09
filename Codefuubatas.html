@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aqua-ID Editor</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.min.js"></script>
+  <style>
+    /* ===== VARIABEL GLOBAL ===== */
+    :root {
+      --space-xs: 4px;
+      --space-sm: 8px;
+      --space-md: 16px;
+      --space-lg: 24px;
+      --space-xl: 32px;
+      /* Warna utama */
+      --orange: #FF6B35;
+      --orange-light: #FF8C5A;
+      --blue: #4281A4;
+      --blue-light: #5D9EC9;
+      --purple: #9B5DE5;
+      --purple-light: #B07FEB;
+      --white: #FFFFFF;
+      --gray-light: #F7F7F7;
+      --gray-medium: #E0E0E0;
+      --gray-dark: #2B2D42;
+      --black: #1A1A1A;
+      /* Warna aksen */
+      --green: #4CAF50;
+      --red: #E63946;
+      --yellow: #FFD166;
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.1);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,0.2);
+      --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html { 
+      height: 100%; 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      overflow: hidden; 
+      font-size: 14px; 
+      color: var(--black);
+      background-color: var(--gray-light);
+    }
+    /* ===== HEADER STYLES ===== */
+    header {
+      background: linear-gradient(135deg, var(--orange), var(--purple));
+      color: var(--white);
+      padding: var(--space-sm) var(--space-md);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 50px;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      z-index: 1000;
+    }
+    .logo {
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      letter-spacing: 0.5px;
+    }
+    .logo i { color: var(--white); font-size: 1.2rem; }
+    .controls { display: flex; align-items: center; gap: var(--space-sm); }
+    .controls button {
+      padding: 6px 12px;
+      font-size: 13px;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+      background: var(--blue);
+      transition: var(--transition);
+      font-weight: 500;
+      box-shadow: var(--shadow-sm);
+    }
+    .controls button:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+    .controls button i { font-size: 12px; }
+    #runBtn { background: var(--green); }
+    #runBtn:hover { background: #3d8b40; }
+    #consoleBtn { background: var(--purple); }
+    #consoleBtn:hover { background: var(--purple-light); }
+    /* ===== DROPDOWN STYLES ===== */
+    .dropdown { position: relative; display: inline-block; }
+    .dropdown-toggle {
+      background: rgba(255,255,255,0.2) !important;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border-radius: 50%;
+    }
+    .dropdown-toggle:hover {
+      background: rgba(255,255,255,0.3) !important;
+      transform: rotate(90deg);
+    }
+    .dropdown-content {
+      position: absolute;
+      top: calc(100% + 5px);
+      right: 0;
+      background: var(--white);
+      border: 1px solid var(--gray-medium);
+      display: none;
+      flex-direction: column;
+      z-index: 1000;
+      min-width: 180px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      animation: fadeIn 0.2s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .dropdown-content button {
+      background: var(--white);
+      color: var(--black);
+      border: none;
+      text-align: left;
+      padding: var(--space-sm) var(--space-md);
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: 13px;
+      transition: var(--transition);
+      border-bottom: 1px solid var(--gray-light);
+    }
+    .dropdown-content button:last-child { border-bottom: none; }
+    .dropdown-content button i {
+      width: 18px;
+      text-align: center;
+      color: var(--blue);
+    }
+    .dropdown-content button:hover {
+      background: var(--blue);
+      color: var(--white);
+    }
+    .dropdown-content button:hover i { color: var(--white); }
+    /* Show dropdown ketika class active ada */
+    .dropdown.active .dropdown-content { display: flex; }
+    /* ===== MAIN EDITOR AREA ===== */
+    .main { 
+      display: flex; 
+      height: calc(100% - 50px); 
+      position: relative;
+      flex-direction: row;
+    }
+    #editor { 
+      flex: 1; 
+      height: 100%;
+      min-width: 300px;
+    }
+    /* ===== PANEL STYLES ===== */
+    .panel {
+      position: relative;
+      background: var(--white);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-md);
+    }
+    /* Panel Output */
+    #outputPanel {
+      width: 50%;
+      height: 100%;
+      border-left: 1px solid var(--gray-medium);
+      display: flex;
+      flex-direction: column;
+    }
+    /* Panel CSS */
+    #cssPanel {
+      position: fixed;
+      left: -50%;
+      width: 50%;
+      height: calc(100% - 50px);
+      border-right: 1px solid var(--gray-medium);
+      transition: left var(--transition);
+      z-index: 800;
+    }
+    /* Panel JS */
+    #jsPanel {
+      position: fixed;
+      left: -50%;
+      width: 50%;
+      height: calc(100% - 50px);
+      border-right: 1px solid var(--gray-medium);
+      transition: left var(--transition);
+      z-index: 750;
+    }
+    #cssPanel:not(.visible), #jsPanel:not(.visible) { pointer-events: none; }
+    #cssPanel.visible, #jsPanel.visible { left: 0; }
+    .panel-header {
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      color: var(--white);
+      padding: 0 var(--space-md);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 40px;
+      font-weight: 500;
+    }
+    .panel-header span { display: flex; align-items: center; gap: var(--space-sm); }
+    .panel-header i { font-size: 14px; }
+    .panel-header .panel-controls { display: flex; align-items: center; gap: var(--space-xs); }
+    .panel-header button {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: var(--white);
+      padding: 5px 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+      font-size: 13px;
+      transition: var(--transition);
+      border-radius: var(--radius-sm);
+    }
+    .panel-header button:hover { background: rgba(255,255,255,0.3); }
+    .panel-content {
+      flex: 1;
+      height: calc(100% - 40px);
+      overflow: hidden;
+      background: var(--white);
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: var(--white);
+    }
+    /* ===== LOADING INDICATOR ===== */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255,255,255,0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .loading-overlay.active { opacity: 1; }
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(66, 129, 164, 0.2);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: var(--space-sm);
+    }
+    .loading-text { color: var(--blue); font-size: 14px; font-weight: 500; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* ===== RESIZE HANDLES ===== */
+    .resize-handle {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      width: 8px;
+      cursor: col-resize;
+      z-index: 20;
+      background: transparent;
+      transition: background 0.2s;
+    }
+    .resize-handle:hover, .resize-handle.active {
+      background: rgba(66, 129, 164, 0.3);
+    }
+    #cssPanel .resize-handle, 
+    #jsPanel .resize-handle { right: -4px; left: auto; }
+    #outputPanel .resize-handle { left: -4px; }
+    /* ===== ACE EDITOR STYLES ===== */
+    .ace-editor {
+      height: 100%;
+      width: 100%;
+      font-size: 13px !important;
+    }
+    /* ===== CONSOLE PANEL ===== */
+    #consolePanel {
+      position: fixed;
+      bottom: -300px;
+      left: 0;
+      right: 0;
+      height: 300px;
+      background: var(--gray-dark);
+      color: var(--white);
+      z-index: 1000;
+      transition: bottom var(--transition);
+      display: flex;
+      flex-direction: column;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 -5px 15px rgba(0,0,0,0.2);
+    }
+    #consolePanel.visible { bottom: 0; }
+    .console-header {
+      padding: var(--space-sm) var(--space-md);
+      background: var(--gray-dark);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .console-header span { display: flex; align-items: center; gap: var(--space-sm); font-weight: 500; }
+    .console-controls { 
+      display: flex; 
+      align-items: center; 
+      gap: var(--space-xs);
+    }
+    .console-filters {
+      display: flex;
+      gap: 4px;
+      margin-right: 10px;
+    }
+    .console-filters .filter-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: var(--white);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .console-filters .filter-btn.active {
+      background: var(--blue-light);
+      font-weight: bold;
+    }
+    .console-filters .filter-btn[data-filter="error"] {
+      color: var(--red);
+    }
+    .console-filters .filter-btn[data-filter="warn"] {
+      color: var(--yellow);
+    }
+    .console-filters .filter-btn[data-filter="log"] {
+      color: var(--blue-light);
+    }
+    .console-controls button {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: var(--white);
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    .console-controls button:hover { background: rgba(255,255,255,0.3); }
+    #consoleContent {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-md);
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      line-height: 1.5;
+      background: var(--black);
+    }
+    .console-message {
+      margin-bottom: var(--space-xs);
+      padding: 2px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .console-log { color: var(--white); }
+    .console-error { color: var(--red); }
+    .console-warn { color: var(--yellow); }
+    .console-info { color: var(--blue-light); }
+    .console-group {
+      margin-bottom: var(--space-xs);
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .group-toggle {
+      background: transparent;
+      border: none;
+      color: var(--white);
+      cursor: pointer;
+      padding: 2px 0;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      text-align: left;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    .group-toggle i {
+      font-size: 12px;
+      width: 16px;
+    }
+    #clearConsoleBtn {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: var(--white);
+      cursor: pointer;
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    #clearConsoleBtn:hover { background: rgba(255,255,255,0.2); }
+    /* Console search */
+    .console-search {
+      position: relative;
+      margin-right: 10px;
+    }
+    .console-search input {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 4px;
+      padding: 4px 8px;
+      color: white;
+      width: 180px;
+      font-size: 12px;
+    }
+    .console-search input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+    .console-search button {
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,0.5);
+      cursor: pointer;
+      padding: 0;
+      font-size: 12px;
+    }
+    .console-search button:hover {
+      color: white;
+    }
+    .highlight {
+      background-color: rgba(255, 255, 0, 0.3);
+      padding: 1px 2px;
+      border-radius: 2px;
+    }
+    /* Toggle styles */
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      margin-right: 10px;
+      font-size: 12px;
+    }
+    .toggle-label {
+      margin-left: 5px;
+      color: rgba(255,255,255,0.8);
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 20px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(255,255,255,0.2);
+      transition: .4s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: var(--blue-light);
+    }
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+    /* ===== MODAL STYLES ===== */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1200;
+      opacity: 0;
+      pointer-events: none;
+      transition: var(--transition);
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      width: 90%;
+      max-width: 400px;
+      box-shadow: var(--shadow-lg);
+      transform: translateY(20px);
+      transition: var(--transition);
+      overflow: hidden;
+    }
+    .modal-overlay.active .modal { transform: translateY(0); }
+    .modal-header {
+      padding: var(--space-md);
+      background: linear-gradient(135deg, var(--orange), var(--blue));
+      color: var(--white);
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-body { padding: var(--space-md); }
+    .modal-footer {
+      padding: var(--space-md);
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-sm);
+      border-top: 1px solid var(--gray-medium);
+    }
+    .modal-btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+    .modal-btn-primary { background: var(--blue); color: var(--white); }
+    .modal-btn-primary:hover { background: var(--blue-light); }
+    .modal-btn-secondary { background: var(--gray-medium); color: var(--black); }
+    .modal-btn-secondary:hover { background: #d0d0d0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <i class="fas fa-code"></i> Aqua-ID Editor
+    </div>
+    <div class="controls">
+      <button id="runBtn"><i class="fas fa-play"></i> Run</button>
+      <button id="consoleBtn"><i class="fas fa-terminal"></i> Console</button>
+      <div class="dropdown" id="mainDropdown">
+        <button class="dropdown-toggle" id="dropdownToggle"><i class="fas fa-ellipsis-v"></i></button>
+        <div class="dropdown-content">
+          <button onclick="formatCurrentEditor()"><i class="fas fa-align-left"></i> Format Code</button>
+          <button onclick="togglePanel('cssPanel')"><i class="fab fa-css3-alt"></i> CSS Editor</button>
+          <button onclick="togglePanel('jsPanel')"><i class="fab fa-js"></i> JS Editor</button>
+          <button id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh Output</button>
+          <button id="clearBtn"><i class="fas fa-trash-alt"></i> Clear All</button>
+          <button id="saveBtn"><i class="fas fa-save"></i> Save Code</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="main">
+    <div id="editor">// Tulis kode HTML di sini</div>
+
+    <!-- Output Panel -->
+    <div class="panel" id="outputPanel">
+      <div class="resize-handle"></div>
+      <div class="panel-header">
+        <span><i class="fas fa-terminal"></i> Output</span>
+        <div class="panel-controls">
+          <button onclick="closePanel('outputPanel')"><i class="fas fa-times"></i> Close</button>
+        </div>
+      </div>
+      <div class="panel-content">
+        <div class="loading-overlay" id="loadingOverlay">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Loading Preview...</div>
+        </div>
+        <iframe id="outputFrame"></iframe>
+      </div>
+    </div>
+
+    <!-- CSS Panel -->
+    <div class="panel" id="cssPanel">
+      <div class="resize-handle"></div>
+      <div class="panel-header">
+        <span><i class="fab fa-css3-alt"></i> CSS Editor</span>
+        <div class="panel-controls">
+          <button onclick="saveCode('css')"><i class="fas fa-save"></i> Save</button>
+          <button onclick="closePanel('cssPanel')"><i class="fas fa-times"></i> Close</button>
+        </div>
+      </div>
+      <div class="panel-content">
+        <div id="cssEditor" class="ace-editor"></div>
+      </div>
+    </div>
+
+    <!-- JS Panel -->
+    <div class="panel" id="jsPanel">
+      <div class="resize-handle"></div>
+      <div class="panel-header">
+        <span><i class="fab fa-js"></i> JavaScript Editor</span>
+        <div class="panel-controls">
+          <button onclick="saveCode('js')"><i class="fas fa-save"></i> Save</button>
+          <button onclick="closePanel('jsPanel')"><i class="fas fa-times"></i> Close</button>
+        </div>
+      </div>
+      <div class="panel-content">
+        <div id="jsEditor" class="ace-editor"></div>
+      </div>
+    </div>
+    
+    <!-- Console Panel -->
+    <div id="consolePanel">
+      <div class="console-header">
+        <span><i class="fas fa-terminal"></i> Console</span>
+        <div class="console-controls">
+          <div class="toggle-container">
+            <label class="switch">
+              <input type="checkbox" id="clearOnReloadToggle">
+              <span class="slider round"></span>
+            </label>
+            <span class="toggle-label">Clear on reload</span>
+          </div>
+          <div class="console-search">
+            <input type="text" id="consoleSearch" placeholder="Search console...">
+            <button id="clearSearch"><i class="fas fa-times"></i></button>
+          </div>
+          <div class="console-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="error">Errors</button>
+            <button class="filter-btn" data-filter="warn">Warnings</button>
+            <button class="filter-btn" data-filter="log">Logs</button>
+          </div>
+          <button id="exportConsoleBtn"><i class="fas fa-download"></i> Export</button>
+          <button id="clearConsoleBtn"><i class="fas fa-trash-alt"></i> Clear</button>
+          <button onclick="closePanel('consolePanel')"><i class="fas fa-times"></i> Close</button>
+        </div>
+      </div>
+      <div id="consoleContent"></div>
+    </div>
+  </div>
+
+  <!-- Clear All Confirmation Modal -->
+  <div class="modal-overlay" id="clearModal">
+    <div class="modal">
+      <div class="modal-header">
+        <span><i class="fas fa-exclamation-triangle"></i> Confirm Clear All</span>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to clear all code in HTML, CSS, and JavaScript editors?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-secondary" id="cancelClearBtn">Cancel</button>
+        <button class="modal-btn modal-btn-primary" id="confirmClearBtn">Clear All</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Save Options Modal -->
+  <div class="modal-overlay" id="saveModal">
+    <div class="modal">
+      <div class="modal-header">
+        <span><i class="fas fa-save"></i> Save Your Code</span>
+      </div>
+      <div class="modal-body">
+        <p>Select the format in which you want to save your code:</p>
+        <div class="save-options" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px;">
+          <button class="save-option-btn modal-btn" style="flex: 1; min-width: 120px;" onclick="saveCode('html')">
+            <i class="fab fa-html5"></i> Save as HTML
+          </button>
+          <button class="save-option-btn modal-btn" style="flex: 1; min-width: 120px;" onclick="saveCode('css')">
+            <i class="fab fa-css3-alt"></i> Save as CSS
+          </button>
+          <button class="save-option-btn modal-btn" style="flex: 1; min-width: 120px;" onclick="saveCode('js')">
+            <i class="fab fa-js"></i> Save as JavaScript
+          </button>
+          <button class="save-option-btn modal-btn" style="flex: 1; min-width: 120px;" onclick="saveAllCode()">
+            <i class="fas fa-file-archive"></i> Save All Files
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-secondary" onclick="document.getElementById('saveModal').classList.remove('active')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Inisialisasi ACE Editors
+    const editor = ace.edit("editor");
+    const cssEditor = ace.edit("cssEditor");
+    const jsEditor = ace.edit("jsEditor");
+    const loadingOverlay = document.getElementById("loadingOverlay");
+    const dropdownToggle = document.getElementById("dropdownToggle");
+    const mainDropdown = document.getElementById("mainDropdown");
+
+    // Aktifkan fitur autocompletion dan snippets
+    [editor, cssEditor, jsEditor].forEach(ed => {
+      ed.setTheme("ace/theme/chrome");
+      ed.setOptions({
+        enableEmmet: true,
+        enableBasicAutocompletion: true,
+        enableLiveAutocompletion: true,
+        enableSnippets: true,
+        fontSize: '13px',
+        showPrintMargin: false,
+        highlightActiveLine: true,
+        highlightSelectedWord: true
+      });
+    });
+
+    // Set mode untuk masing-masing editor
+    editor.session.setMode("ace/mode/html");
+    cssEditor.session.setMode("ace/mode/css");
+    jsEditor.session.setMode("ace/mode/javascript");
+
+    // Tambahkan snippet untuk HTML (contoh: trigger 'html5')
+    ace.config.loadModule("ace/snippets/html", function(module) {
+      module.snippetText += `
+snippet html5
+  <!DOCTYPE html>
+  <html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>\${1:Title}</title>
+  </head>
+  <body>
+    \${2}
+  </body>
+  </html>
+`;
+      module.registerSnippets(editor.session);
+    });
+
+    // UI Elements
+    const outputPanel = document.getElementById("outputPanel");
+    const outputFrame = document.getElementById("outputFrame");
+    const consolePanel = document.getElementById("consolePanel");
+    const consoleContent = document.getElementById("consoleContent");
+    const consoleBtn = document.getElementById("consoleBtn");
+    const clearConsoleBtn = document.getElementById("clearConsoleBtn");
+    const exportConsoleBtn = document.getElementById("exportConsoleBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const clearModal = document.getElementById("clearModal");
+    const cancelClearBtn = document.getElementById("cancelClearBtn");
+    const confirmClearBtn = document.getElementById("confirmClearBtn");
+    const saveModal = document.getElementById("saveModal");
+    const consoleSearch = document.getElementById("consoleSearch");
+    const clearSearchBtn = document.getElementById("clearSearch");
+    const clearOnReloadToggle = document.getElementById("clearOnReloadToggle");
+
+    // Inisialisasi dengan kode default
+    editor.setValue(`<!DOCTYPE html>
+<html>
+<head>
+  <title>My Awesome Page</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #4281A4;
+      border-bottom: 2px solid #FF6B35;
+      padding-bottom: 10px;
+    }
+    button {
+      background: #4281A4;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #5D9EC9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Aqua-ID Editor</h1>
+    <p>This is a live preview of your HTML, CSS, and JavaScript code.</p>
+    <button onclick="testConsole()">Test Console Output</button>
+    <div id="output"></div>
+  </div>
+  
+  <script>
+    function testConsole() {
+      console.log('This is a regular log message');
+      console.info('This is an informational message');
+      console.warn('This is a warning message');
+      console.error('This is an error message');
+      
+      // Test console.group
+      console.group('User Details');
+      console.log('Name: John Doe');
+      console.log('Age: 30');
+      console.groupCollapsed('Address');
+      console.log('Street: 123 Main St');
+      console.log('City: New York');
+      console.groupEnd();
+      console.groupEnd();
+      
+      const user = {
+        name: 'John Doe',
+        age: 30,
+        email: 'john@example.com'
+      };
+      console.log('User object:', user);
+      
+      const outputDiv = document.getElementById('output');
+      outputDiv.innerHTML = '<p>Button clicked! Check the console for output.</p>';
+      
+      // Test error with stack trace
+      try {
+        throw new Error('This is a test error with stack trace');
+      } catch (e) {
+        console.error(e);
+      }
+      
+      debugger;
+      const x = 10;
+      const y = 20;
+      console.log(\`The sum of \${x} and \${y} is \${x + y}\`);
+      
+      // Test unhandled promise rejection
+      new Promise((resolve, reject) => {
+        reject(new Error('Unhandled promise rejection test'));
+      });
+    }
+  <\/script>
+</body>
+</html>`);
+    
+    cssEditor.setValue(`/* Add your CSS styles here */
+.container {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+button {
+  transition: all 0.3s ease;
+}
+
+button:active {
+  transform: scale(0.98);
+}`);
+    
+    jsEditor.setValue(`// Add your JavaScript here
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM fully loaded and parsed');
+});
+
+function calculateSum(a, b) {
+  return a + b;
+}`);
+
+    // Setup Prettier for code formatting
+    function setupPrettier() {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/prettier@2.7.1/standalone.min.js';
+      script.onload = () => {
+        const parserScript = document.createElement('script');
+        parserScript.src = 'https://cdn.jsdelivr.net/npm/prettier@2.7.1/parser-html.min.js';
+        parserScript.onload = () => {
+          const cssParserScript = document.createElement('script');
+          cssParserScript.src = 'https://cdn.jsdelivr.net/npm/prettier@2.7.1/parser-postcss.min.js';
+          cssParserScript.onload = () => {
+            const babelParserScript = document.createElement('script');
+            babelParserScript.src = 'https://cdn.jsdelivr.net/npm/prettier@2.7.1/parser-babel.min.js';
+            babelParserScript.onload = initializePrettier;
+            document.body.appendChild(babelParserScript);
+          };
+          document.body.appendChild(cssParserScript);
+        };
+        document.body.appendChild(parserScript);
+      };
+      document.body.appendChild(script);
+    }
+
+    function initializePrettier() {
+      // Add format command to each editor
+      [editor, cssEditor, jsEditor].forEach((ed, i) => {
+        const type = i === 0 ? 'html' : i === 1 ? 'css' : 'js';
+        ed.commands.addCommand({
+          name: 'formatCode',
+          bindKey: { win: 'Ctrl-Shift-F', mac: 'Command-Shift-F' },
+          exec: () => formatCode(type)
+        });
+      });
+    }
+
+    function formatCurrentEditor() {
+      const activeEditor = document.querySelector('.ace_editor.ace_focus');
+      if (activeEditor === editor.container) formatCode('html');
+      else if (activeEditor === cssEditor.container) formatCode('css');
+      else if (activeEditor === jsEditor.container) formatCode('js');
+    }
+
+    function formatCode(type) {
+      try {
+        const code = type === 'html' ? editor.getValue() : 
+                    type === 'css' ? cssEditor.getValue() : 
+                    jsEditor.getValue();
+        
+        const options = {
+          parser: type === 'html' ? 'html' : 
+                 type === 'css' ? 'css' : 'babel',
+          plugins: prettierPlugins,
+          printWidth: 80,
+          tabWidth: 2,
+          useTabs: false,
+          semi: true,
+          singleQuote: true,
+          jsxSingleQuote: false,
+          trailingComma: 'es5',
+          bracketSpacing: true,
+          arrowParens: 'always',
+          endOfLine: 'lf'
+        };
+        
+        const formatted = prettier.format(code, options);
+        
+        if (type === 'html') editor.setValue(formatted);
+        else if (type === 'css') cssEditor.setValue(formatted);
+        else jsEditor.setValue(formatted);
+        
+        showNotification('Code formatted successfully!');
+      } catch (error) {
+        console.error('Formatting error:', error);
+        showNotification('Formatting error: ' + error.message, 'error');
+      }
+    }
+
+    function showNotification(message, type = 'success') {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+        <span>${message}</span>
+      `;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.classList.add('fade-out');
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
+
+    // Setup console persistence
+    function setupConsolePersistence() {
+      // Load saved logs if any
+      const savedLogs = localStorage.getItem('consoleLogs');
+      if (savedLogs) {
+        consoleContent.innerHTML = savedLogs;
+      }
+      
+      // Load saved preference
+      clearOnReloadToggle.checked = localStorage.getItem('clearOnReload') !== 'false';
+      clearOnReloadToggle.addEventListener('change', () => {
+        localStorage.setItem('clearOnReload', clearOnReloadToggle.checked);
+      });
+      
+      // Save logs periodically
+      setInterval(() => {
+        if (consoleContent.children.length > 0) {
+          localStorage.setItem('consoleLogs', consoleContent.innerHTML);
+        }
+      }, 5000);
+      
+      // Clear logs on reload if setting is enabled
+      window.addEventListener('beforeunload', () => {
+        if (clearOnReloadToggle.checked) {
+          localStorage.removeItem('consoleLogs');
+        }
+      });
+    }
+
+    function exportConsoleLogs() {
+      const logs = Array.from(consoleContent.children)
+        .map(el => {
+          if (el.classList.contains('console-group')) {
+            return el.textContent;
+          }
+          return el.textContent.replace(/\[\d{1,2}:\d{1,2}:\d{1,2} [AP]M\] /, '');
+        })
+        .join('\n');
+      
+      const blob = new Blob([logs], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `console_logs_${new Date().toISOString().slice(0, 10)}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Setup console filters
+    function setupConsoleFilters() {
+      const filterButtons = document.querySelectorAll('.filter-btn');
+      
+      filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          filterButtons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          
+          const filter = btn.dataset.filter;
+          const messages = document.querySelectorAll('.console-message, .console-group');
+          
+          messages.forEach(msg => {
+            if (filter === 'all') {
+              msg.style.display = 'block';
+            } else {
+              const msgType = msg.className.includes(filter) ? filter : 'other';
+              msg.style.display = msgType === filter ? 'block' : 'none';
+            }
+          });
+        });
+      });
+    }
+
+    // Setup console search
+    function setupConsoleSearch() {
+      consoleSearch.addEventListener('input', () => {
+        const searchTerm = consoleSearch.value.toLowerCase();
+        const messages = document.querySelectorAll('.console-message, .console-group');
+        
+        if (!searchTerm) {
+          messages.forEach(msg => {
+            msg.style.display = 'block';
+            const highlights = msg.querySelectorAll('.highlight');
+            highlights.forEach(hl => {
+              const parent = hl.parentNode;
+              parent.replaceChild(document.createTextNode(hl.textContent), hl);
+              parent.normalize();
+            });
+          });
+          return;
+        }
+        
+        messages.forEach(msg => {
+          const text = msg.textContent.toLowerCase();
+          if (text.includes(searchTerm)) {
+            msg.style.display = 'block';
+            
+            // Highlight matches
+            const content = msg.querySelector('span:last-child') || msg;
+            const html = content.innerHTML;
+            const regex = new RegExp(searchTerm, 'gi');
+            content.innerHTML = html.replace(regex, match => 
+              `<span class="highlight">${match}</span>`);
+          } else {
+            msg.style.display = 'none';
+          }
+        });
+      });
+      
+      clearSearchBtn.addEventListener('click', () => {
+        consoleSearch.value = '';
+        consoleSearch.dispatchEvent(new Event('input'));
+      });
+    }
+
+    // Render output saat load pertama
+    document.addEventListener("DOMContentLoaded", () => {
+      renderOutput();
+      setupPrettier();
+      setupConsolePersistence();
+      setupConsoleFilters();
+      setupConsoleSearch();
+    });
+    
+    // Dropdown toggle
+    dropdownToggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      mainDropdown.classList.toggle('active');
+    });
+    
+    // Close dropdown saat klik di luar
+    document.addEventListener('click', function(e) {
+      if (!mainDropdown.contains(e.target)) {
+        mainDropdown.classList.remove('active');
+      }
+    });
+    
+    // Cegah dropdown tertutup saat klik di dalam konten
+    mainDropdown.querySelector('.dropdown-content').addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
+    
+    // Event Listeners
+    document.getElementById("runBtn").addEventListener("click", () => {
+      renderOutput();
+      outputPanel.style.display = 'flex';
+    });
+    
+    refreshBtn.addEventListener("click", () => {
+      showLoading();
+      renderOutput();
+    });
+    
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      clearModal.classList.add('active');
+    });
+    
+    cancelClearBtn.addEventListener("click", () => {
+      clearModal.classList.remove('active');
+    });
+    
+    confirmClearBtn.addEventListener("click", () => {
+      editor.setValue("");
+      cssEditor.setValue("");
+      jsEditor.setValue("");
+      renderOutput();
+      clearModal.classList.remove('active');
+    });
+    
+    // Save button functionality
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      saveModal.classList.add('active');
+    });
+    
+    // Console panel toggle
+    consoleBtn.addEventListener("click", () => {
+      consolePanel.classList.add("visible");
+    });
+    
+    // Clear console
+    clearConsoleBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      consoleContent.innerHTML = '';
+      localStorage.removeItem('consoleLogs');
+    });
+    
+    // Export console logs
+    exportConsoleBtn.addEventListener('click', exportConsoleLogs);
+
+    // Fungsi Loading
+    function showLoading() {
+      loadingOverlay.classList.add('active');
+      setTimeout(() => {
+        loadingOverlay.classList.remove('active');
+      }, 800);
+    }
+    
+    // Render output pada iframe dengan memasukkan HTML, CSS, dan JS
+    function renderOutput() {
+      const html = editor.getValue();
+      const css = cssEditor.getValue();
+      const js = jsEditor.getValue();
+    
+      const combined = `
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>${css}</style>
+    <script>
+      const originalConsole = {
+        log: console.log,
+        error: console.error,
+        warn: console.warn,
+        info: console.info,
+        debug: console.debug
+      };
+      
+      function sendToParentConsole(type, ...args) {
+        const message = args.map(arg => {
+          if (typeof arg === 'object') {
+            try {
+              return JSON.stringify(arg, null, 2);
+            } catch (e) {
+              return String(arg);
+            }
+          }
+          return String(arg);
+        }).join(' ');
+        
+        window.parent.postMessage({
+          type: 'console',
+          method: type,
+          message: message,
+          timestamp: new Date().toLocaleTimeString()
+        }, '*');
+        
+        originalConsole[type].apply(console, args);
+      }
+      
+      // Override console methods
+      ['log', 'error', 'warn', 'info', 'debug'].forEach(method => {
+        console[method] = (...args) => sendToParentConsole(method, ...args);
+      });
+      
+      // Enhanced error handling
+      window.addEventListener('error', (event) => {
+        const stackTrace = event.error?.stack || 'No stack trace available';
+        window.parent.postMessage({
+          type: 'console',
+          method: 'error',
+          message: \`\${event.message}\\n\${stackTrace}\`,
+          timestamp: new Date().toLocaleTimeString(),
+          isError: true
+        }, '*');
+        return true;
+      });
+      
+      // Handle unhandled promise rejections
+      window.addEventListener('unhandledrejection', (event) => {
+        const reason = event.reason;
+        const stackTrace = reason?.stack || 'No stack trace available';
+        window.parent.postMessage({
+          type: 'console',
+          method: 'error',
+          message: \`Unhandled promise rejection: \${reason}\\n\${stackTrace}\`,
+          timestamp: new Date().toLocaleTimeString(),
+          isError: true
+        }, '*');
+      });
+      
+      // Support for console.group
+      const groupStack = [];
+      
+      console.group = (label = '') => {
+        window.parent.postMessage({
+          type: 'console',
+          method: 'group',
+          message: label,
+          timestamp: new Date().toLocaleTimeString()
+        }, '*');
+        groupStack.push(label);
+      };
+      
+      console.groupCollapsed = (label = '') => {
+        window.parent.postMessage({
+          type: 'console',
+          method: 'groupCollapsed',
+          message: label,
+          timestamp: new Date().toLocaleTimeString()
+        }, '*');
+        groupStack.push(label);
+      };
+      
+      console.groupEnd = () => {
+        window.parent.postMessage({
+          type: 'console',
+          method: 'groupEnd',
+          timestamp: new Date().toLocaleTimeString()
+        }, '*');
+        groupStack.pop();
+      };
+    <\/script>
+  </head>
+  <body>${html}<script>${js}<\/script></body>
+</html>
+      `;
+      
+      outputFrame.srcdoc = combined;
+      
+      if (outputPanel.style.display === 'none') {
+        outputPanel.style.display = 'flex';
+      }
+    }
+    
+    // Mendengarkan pesan dari iframe untuk console
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'console') {
+        if (event.data.method === 'group' || event.data.method === 'groupCollapsed') {
+          const groupDiv = document.createElement('div');
+          groupDiv.className = 'console-group';
+          groupDiv.dataset.level = document.querySelectorAll('.console-group').length;
+          
+          const toggleBtn = document.createElement('button');
+          toggleBtn.className = 'group-toggle';
+          toggleBtn.innerHTML = event.data.method === 'groupCollapsed' 
+            ? '<i class="fas fa-caret-right"></i> ' + (event.data.message || 'Group')
+            : '<i class="fas fa-caret-down"></i> ' + (event.data.message || 'Group');
+          toggleBtn.onclick = () => {
+            const isCollapsed = toggleBtn.querySelector('.fa-caret-right');
+            toggleBtn.innerHTML = isCollapsed 
+              ? '<i class="fas fa-caret-down"></i> ' + (event.data.message || 'Group')
+              : '<i class="fas fa-caret-right"></i> ' + (event.data.message || 'Group');
+            
+            let next = groupDiv.nextElementSibling;
+            while (next && parseInt(next.dataset.level) > parseInt(groupDiv.dataset.level)) {
+              next.style.display = isCollapsed ? 'block' : 'none';
+              next = next.nextElementSibling;
+            }
+          };
+          
+          groupDiv.appendChild(toggleBtn);
+          consoleContent.appendChild(groupDiv);
+          
+          if (event.data.method === 'groupCollapsed') {
+            toggleBtn.click(); // Collapse the group initially
+          }
+          return;
+        }
+        
+        if (event.data.method === 'groupEnd') {
+          return; // No visual for group end, just affects nesting
+        }
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'console-message console-' + event.data.method;
+        
+        const timestampSpan = document.createElement('span');
+        timestampSpan.style.color = '#777';
+        timestampSpan.textContent = '[' + event.data.timestamp + '] ';
+        messageDiv.appendChild(timestampSpan);
+        
+        const methodSpan = document.createElement('span');
+        methodSpan.style.fontWeight = 'bold';
+        
+        switch(event.data.method) {
+          case 'log': methodSpan.style.color = '#4281A4'; break;
+          case 'error': methodSpan.style.color = '#E63946'; break;
+          case 'warn': methodSpan.style.color = '#FFD166'; break;
+          case 'info': methodSpan.style.color = '#9B5DE5'; break;
+          case 'debug': methodSpan.style.color = '#4CAF50'; break;
+        }
+        
+        methodSpan.textContent = event.data.method + ': ';
+        messageDiv.appendChild(methodSpan);
+        
+        const messageSpan = document.createElement('span');
+        messageSpan.textContent = event.data.message;
+        messageDiv.appendChild(messageSpan);
+        
+        if (event.data.isError) {
+          messageDiv.style.backgroundColor = 'rgba(230, 57, 70, 0.1)';
+        }
+        
+        consoleContent.appendChild(messageDiv);
+        consoleContent.scrollTop = consoleContent.scrollHeight;
+      }
+    });
+    
+    // Fungsi untuk toggle panel (CSS/JS)
+    function togglePanel(id) {
+      document.querySelectorAll("#cssPanel, #jsPanel").forEach(panel => {
+        if (panel.id !== id) {
+          panel.classList.remove("visible");
+        }
+      });
+      
+      const panel = document.getElementById(id);
+      panel.classList.toggle("visible");
+    }
+    
+    // Fungsi untuk menutup panel
+    function closePanel(id) {
+      if (id === 'outputPanel') {
+        outputPanel.style.display = 'none';
+      } else {
+        document.getElementById(id).classList.remove("visible");
+      }
+    }
+    
+    // Logika resize panel
+    let isResizing = false;
+    let startX, startWidth, currentPanel;
+    
+    document.querySelectorAll(".resize-handle").forEach(handle => {
+      handle.addEventListener("mousedown", (e) => {
+        e.stopPropagation();
+        isResizing = true;
+        startX = e.clientX;
+        currentPanel = handle.parentElement;
+        startWidth = currentPanel.offsetWidth;
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+        handle.classList.add('active');
+    
+        const iframe = currentPanel.querySelector("iframe");
+        if (iframe) iframe.style.pointerEvents = "none";
+    
+        e.preventDefault();
+      });
+    });
+    
+    window.addEventListener("mousemove", (e) => {
+      if (!isResizing || !currentPanel) return;
+      
+      const dx = e.clientX - startX;
+      let newWidth = startWidth;
+      
+      if (currentPanel.id === 'cssPanel' || currentPanel.id === 'jsPanel') {
+        newWidth = startWidth + dx;
+      } else {
+        newWidth = startWidth - dx;
+      }
+      
+      if (newWidth < 200) newWidth = 200;
+      if (newWidth > window.innerWidth * 0.9) newWidth = window.innerWidth * 0.9;
+      currentPanel.style.width = newWidth + "px";
+    });
+    
+    window.addEventListener("mouseup", () => {
+      if (isResizing) {
+        isResizing = false;
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        document.querySelectorAll('.resize-handle').forEach(h => h.classList.remove('active'));
+        const iframe = currentPanel.querySelector("iframe");
+        if (iframe) iframe.style.pointerEvents = "auto";
+        currentPanel = null;
+      }
+    });
+    
+    // Auto-update output saat mengetik (debounce)
+    let debounceTimer;
+    [editor, cssEditor, jsEditor].forEach(ed => {
+      ed.session.on("change", () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          renderOutput();
+        }, 1000);
+      });
+    });
+    
+    // Fungsi untuk menyimpan kode berdasarkan jenis
+    function saveCode(type) {
+      let content, filename, mimeType;
+      
+      switch(type) {
+        case 'html':
+          content = editor.getValue();
+          filename = 'code.html';
+          mimeType = 'text/html';
+          break;
+        case 'css':
+          content = cssEditor.getValue();
+          filename = 'styles.css';
+          mimeType = 'text/css';
+          break;
+        case 'js':
+          content = jsEditor.getValue();
+          filename = 'script.js';
+          mimeType = 'text/javascript';
+          break;
+        default:
+          return;
+      }
+      
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      showSaveSuccess(type);
+      saveModal.classList.remove('active');
+    }
+    
+    function saveAllCode() {
+      saveCode('html');
+      setTimeout(() => {
+        saveCode('css');
+        setTimeout(() => {
+          saveCode('js');
+        }, 300);
+      }, 300);
+    }
+    
+    function showSaveSuccess(type) {
+      const typeNames = {
+        'html': 'HTML',
+        'css': 'CSS',
+        'js': 'JavaScript'
+      };
+      
+      const saveModal = document.createElement('div');
+      saveModal.className = 'modal-overlay active';
+      saveModal.innerHTML = `
+<div class="modal">
+  <div class="modal-header">
+    <span><i class="fas fa-check-circle"></i> Code Saved Successfully</span>
+  </div>
+  <div class="modal-body">
+    <p>Your ${typeNames[type] || ''} code has been saved successfully!</p>
+  </div>
+  <div class="modal-footer">
+    <button class="modal-btn modal-btn-primary" onclick="this.closest('.modal-overlay').remove()">OK</button>
+  </div>
+</div>
+`;
+      document.body.appendChild(saveModal);
+    }
+    
+    // Tutup panel atau modal saat klik di luar
+    document.addEventListener("click", (e) => {
+      if (e.target.closest(".panel-controls")) return;
+      
+      if (!e.target.closest(".panel") && !e.target.closest(".controls button")) {
+        document.querySelectorAll("#cssPanel.visible, #jsPanel.visible").forEach(p => p.classList.remove("visible"));
+      }
+      
+      if (e.target.classList.contains('modal-overlay')) {
+        e.target.classList.remove('active');
+      }
+    });
+    
+    // Tutup modal dengan tombol Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.active').forEach(modal => {
+          modal.classList.remove('active');
+        });
+        mainDropdown.classList.remove('active');
+      }
+    });
+  </script>
+</body>
+</html>
